@@ -1,0 +1,35 @@
+version: '3.8'
+services:
+  reviewer:
+    build: .
+    container_name: ai-reviewer
+    ports:
+      - "8003:8000"
+    environment:
+      - OLLAMA_HOST=http://host.docker.internal:11434
+      - OLLAMA_MODEL=qwen2.5-coder:latest
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET}
+      - REVIEW_MODE=self_hosted
+      - AUTO_APPROVE=false
+      - TEMPERATURE=0.1
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./prompts:/app/prompts:ro
+      - ./logs:/app/logs
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: ngrok
+    command: http reviewer:8000
+    ports:
+      - "4040:4040"
+    profiles:
+      - dev
